@@ -31,6 +31,11 @@ struct HWAddressSanitizerOptions {
   bool DisableOptimization;
 };
 
+struct TypeInfo {
+  unsigned long n_members;
+  unsigned long n_nesting;
+};
+
 /// This is a public interface to the hardware address sanitizer pass for
 /// instrumenting code to check for various memory errors at runtime, similar to
 /// AddressSanitizer but based on partial hardware assistance.
@@ -42,6 +47,8 @@ public:
   static bool isRequired() { return true; }
   void printPipeline(raw_ostream &OS,
                      function_ref<StringRef(StringRef)> MapClassName2PassName);
+  unsigned long getSubTypes(Type *type);
+  unsigned long getLongestPath(Type *type);
 
 private:
   HWAddressSanitizerOptions Options;

@@ -51,7 +51,9 @@ if(FUCHSIA)
   list(APPEND HWASAN_DEFINITIONS HWASAN_REPLACE_OPERATORS_NEW_AND_DELETE=1)
 endif()
 
-set(HWASAN_RTL_CFLAGS ${SANITIZER_COMMON_CFLAGS})
+#set(HWASAN_RTL_CFLAGS ${SANITIZER_COMMON_CFLAGS})
+set(HWASAN_RTL_CFLAGS  -fPIC;-fno-builtin;-fno-exceptions;-fomit-frame-pointer;-funwind-tables;-fno-stack-protector;-fno-sanitize=safe-stack;-fvisibility=hidden;-Wthread-safety;-Wthread-safety-reference;-Wthread-safety-beta;-O3;-gline-tables-only;-Wno-gnu;-Wno-variadic-macros;-Wno-c99-extensions;-nostdinc++;-fno-strict-aliasing;-flto;-fuse-ld=lld)
+
 append_rtti_flag(OFF HWASAN_RTL_CFLAGS)
 append_list_if(COMPILER_RT_HAS_FPIC_FLAG -fPIC HWASAN_RTL_CFLAGS)
 # Prevent clang from generating libc calls.

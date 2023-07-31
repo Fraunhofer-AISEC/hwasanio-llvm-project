@@ -959,7 +959,7 @@ uptr MapDynamicShadow(uptr shadow_size_bytes, uptr shadow_scale,
   CHECK_NE(map_start, ~(uptr)0);
 
   const uptr shadow_start = RoundUpTo(map_start + left_padding, alignment);
-
+  Report("\nmds: %llx %llx %llx\n", map_start, shadow_start, left_padding);
   UnmapFromTo(map_start, shadow_start - left_padding);
   UnmapFromTo(shadow_start + shadow_size, map_start + map_size);
 

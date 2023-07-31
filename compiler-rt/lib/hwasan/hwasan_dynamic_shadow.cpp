@@ -134,8 +134,14 @@ uptr FindDynamicShadowStart(uptr shadow_size_bytes) {
   return MapDynamicShadowAndAliases(shadow_size_bytes, kAliasSize, kNumAliases,
                                     RingBufferSize());
 #  endif
+#ifdef ONE_TO_ONE_MAPPING
+  Printf("Calling MapDynamicShadow with %llx, %llx, %llx, %llx\n", shadow_size_bytes, 1, kShadowBaseAlignment, kHighMemEnd);
+  return MapDynamicShadow(shadow_size_bytes, 1, kShadowBaseAlignment,
+                          kHighMemEnd);
+#else
   return MapDynamicShadow(shadow_size_bytes, kShadowScale, kShadowBaseAlignment,
                           kHighMemEnd);
+#endif
 }
 
 }  // namespace __hwasan

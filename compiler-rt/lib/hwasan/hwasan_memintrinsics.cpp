@@ -21,24 +21,27 @@
 
 using namespace __hwasan;
 
-void *__hwasan_memset(void *block, int c, uptr size) {
+
+void *__hwasan_memset(void *block, int c, uptr size, bool shaded) {
   CheckAddressSized<ErrorAction::Recover, AccessType::Store>(
-      reinterpret_cast<uptr>(block), size);
+    reinterpret_cast<uptr>(block), size, shaded);
   return memset(block, c, size);
 }
 
-void *__hwasan_memcpy(void *to, const void *from, uptr size) {
+void *__hwasan_memcpy(void *to, const void *from, uptr size, bool to_shaded, 
+                      bool from_shaded) {
   CheckAddressSized<ErrorAction::Recover, AccessType::Store>(
-      reinterpret_cast<uptr>(to), size);
+      reinterpret_cast<uptr>(to), size, to_shaded);
   CheckAddressSized<ErrorAction::Recover, AccessType::Load>(
-      reinterpret_cast<uptr>(from), size);
+      reinterpret_cast<uptr>(from), size, from_shaded);
   return memcpy(to, from, size);
 }
 
-void *__hwasan_memmove(void *to, const void *from, uptr size) {
+void *__hwasan_memmove(void *to, const void *from, uptr size, bool to_shaded,
+                       bool from_shaded) {
   CheckAddressSized<ErrorAction::Recover, AccessType::Store>(
-      reinterpret_cast<uptr>(to), size);
+    reinterpret_cast<uptr>(to), size, to_shaded);
   CheckAddressSized<ErrorAction::Recover, AccessType::Load>(
-      reinterpret_cast<uptr>(from), size);
+      reinterpret_cast<uptr>(from), size, from_shaded);
   return memmove(to, from, size);
 }

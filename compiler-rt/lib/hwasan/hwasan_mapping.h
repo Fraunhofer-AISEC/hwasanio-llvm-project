@@ -14,8 +14,9 @@
 #ifndef HWASAN_MAPPING_H
 #define HWASAN_MAPPING_H
 
-#include "sanitizer_common/sanitizer_internal_defs.h"
 #include "hwasan_interface_internal.h"
+#include "hwasan_interface_internal.h"
+#include "sanitizer_common/sanitizer_internal_defs.h"
 
 // Typical mapping on Linux/x86_64:
 // with dynamic shadow mapped at [0x770d59f40000, 0x7f0d59f40000]:
@@ -33,10 +34,16 @@
 // || [0x007477480000, 0x007bbebc7fff] || LowShadow  ||
 // || [0x000000000000, 0x00747747ffff] || LowMem     ||
 
+#define ONE_TO_ONE_MAPPING
 // Reasonable values are 4 (for 1/16th shadow) and 6 (for 1/64th).
+
+#ifdef ONE_TO_ONE_MAPPING
+constexpr uptr kShadowScale = 0;
+constexpr uptr kShadowAlignment = 1ULL;
+#else
 constexpr uptr kShadowScale = 4;
 constexpr uptr kShadowAlignment = 1ULL << kShadowScale;
-
+#endif
 namespace __hwasan {
 
 extern uptr kLowMemStart;
@@ -50,15 +57,17 @@ extern uptr kHighMemEnd;
 
 inline uptr GetShadowOffset() {
   return SANITIZER_FUCHSIA ? 0 : __hwasan_shadow_memory_dynamic_address;
+  // return  (uptr)0xefff00000000dULL;
 }
 inline uptr MemToShadow(uptr untagged_addr) {
-  return (untagged_addr >> kShadowScale) + GetShadowOffset();
+  // return (untagged_addr >> kShadowScale) + GetShadowOffset();
+  return (untagged_addr ^ 0x400000000000); // >> 1);
 }
 inline uptr ShadowToMem(uptr shadow_addr) {
-  return (shadow_addr - GetShadowOffset()) << kShadowScale;
+  return (shadow_addr ^ 0x400000000000); // << 1;
 }
 inline uptr MemToShadowSize(uptr size) {
-  return size >> kShadowScale;
+  return size;
 }
 
 bool MemIsApp(uptr p);

@@ -13,6 +13,8 @@
 #ifndef HWASAN_CHECKS_H
 #define HWASAN_CHECKS_H
 
+#include <stdlib.h>
+
 #include "hwasan_allocator.h"
 #include "hwasan_mapping.h"
 #include "sanitizer_common/sanitizer_common.h"
@@ -62,30 +64,45 @@ __attribute__((always_inline)) static void SigTrap(uptr p, uptr size) {
   // __builtin_unreachable();
 }
 
-__attribute__((always_inline, nodebug)) static bool PossiblyShortTagMatches(
+__attribute__((always_inline, nodebug)) static inline bool PossiblyShortTagMatches(
     tag_t mem_tag, uptr ptr, uptr sz) {
   tag_t ptr_tag = GetTagFromPointer(ptr);
-  if (ptr_tag == mem_tag)
-    return true;
-  if (mem_tag >= kShadowAlignment)
-    return false;
-  if ((ptr & (kShadowAlignment - 1)) + sz > mem_tag)
-    return false;
+  ptr_tag &= 0xf0;
+  mem_tag &= 0xf0;
+
+  return (ptr_tag == mem_tag);
 #ifndef __aarch64__
   ptr = UntagAddr(ptr);
 #endif
-  return *(u8 *)(ptr | (kShadowAlignment - 1)) == ptr_tag;
+}
+
+__attribute__((always_inline, nodebug)) static inline bool
+PossiblyShortTagShadeMatches(tag_t mem_metadata, uptr ptr, uptr sz) {
+  tag_t metadata = GetTagFromPointer(ptr);
+  tag_t ptr_tag = metadata & 0xf0;
+  tag_t ptr_shade = metadata & 0x0f;
+  tag_t mem_tag = mem_metadata & 0xf0;
+  tag_t mem_shade = mem_metadata & 0x0f;
+
+  if (ptr_tag == mem_tag) {
+    if ((ptr_shade == 0x0) || (mem_shade == 0x0) || (ptr_shade == mem_shade)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 enum class ErrorAction { Abort, Recover };
 enum class AccessType { Load, Store };
 
 template <ErrorAction EA, AccessType AT, unsigned LogSize>
-__attribute__((always_inline, nodebug)) static void CheckAddress(uptr p) {
+__attribute__((always_inline, nodebug)) static void CheckAddressNoShade(
+    uptr p) {
   if (!InTaggableRegion(p))
     return;
   uptr ptr_raw = p & ~kAddressTagMask;
   tag_t mem_tag = *(tag_t *)MemToShadow(ptr_raw);
+  mem_tag &= 0xf0;
   if (UNLIKELY(!PossiblyShortTagMatches(mem_tag, p, 1 << LogSize))) {
     SigTrap<0x20 * (EA == ErrorAction::Recover) +
             0x10 * (AT == AccessType::Store) + LogSize>(p);
@@ -95,31 +112,110 @@ __attribute__((always_inline, nodebug)) static void CheckAddress(uptr p) {
 }
 
 template <ErrorAction EA, AccessType AT>
-__attribute__((always_inline, nodebug)) static void CheckAddressSized(uptr p,
-                                                                      uptr sz) {
+__attribute__((always_inline, nodebug)) static void CheckAddressSizedNoShade(
+    uptr p, uptr sz) {
   if (sz == 0 || !InTaggableRegion(p))
     return;
   tag_t ptr_tag = GetTagFromPointer(p);
+  ptr_tag &= 0xf0;
   uptr ptr_raw = p & ~kAddressTagMask;
   tag_t *shadow_first = (tag_t *)MemToShadow(ptr_raw);
-  tag_t *shadow_last = (tag_t *)MemToShadow(ptr_raw + sz);
-  for (tag_t *t = shadow_first; t < shadow_last; ++t)
-    if (UNLIKELY(ptr_tag != *t)) {
-      SigTrap<0x20 * (EA == ErrorAction::Recover) +
-              0x10 * (AT == AccessType::Store) + 0xf>(p, sz);
-      if (EA == ErrorAction::Abort)
-        __builtin_unreachable();
-    }
-  uptr end = p + sz;
-  uptr tail_sz = end & 0xf;
-  if (UNLIKELY(tail_sz != 0 &&
-               !PossiblyShortTagMatches(
-                   *shadow_last, end & ~(kShadowAlignment - 1), tail_sz))) {
+  tag_t *shadow_last = (tag_t *)MemToShadow(ptr_raw + sz - 1);
+  tag_t mem_tag = (*shadow_first) & 0xf0;
+
+  mem_tag = (*shadow_first) & 0xf0;
+  if (UNLIKELY(ptr_tag != (mem_tag))) {
     SigTrap<0x20 * (EA == ErrorAction::Recover) +
             0x10 * (AT == AccessType::Store) + 0xf>(p, sz);
     if (EA == ErrorAction::Abort)
       __builtin_unreachable();
   }
+
+  mem_tag = (*shadow_last) & 0xf0;
+  if (UNLIKELY(ptr_tag != (mem_tag))) {
+    SigTrap<0x20 * (EA == ErrorAction::Recover) +
+            0x10 * (AT == AccessType::Store) + 0xf>(p, sz);
+    if (EA == ErrorAction::Abort)
+      __builtin_unreachable();
+  }
+}
+
+template <ErrorAction EA, AccessType AT, unsigned LogSize>
+__attribute__((always_inline, nodebug)) static void CheckAddressWithShade(
+    uptr p) {
+#ifdef IGNORE_SHADE
+  CheckAddressNoShade<EA, AT, LogSize>(p);
+#else
+  if (!InTaggableRegion(p))
+    return;
+  uptr ptr_raw = p & ~kAddressTagMask;
+  tag_t mem_tag = *(tag_t *)MemToShadow(ptr_raw);
+  if (UNLIKELY(!PossiblyShortTagShadeMatches(mem_tag, p, 1 << LogSize))) {
+    SigTrap<0x20 * (EA == ErrorAction::Recover) +
+            0x10 * (AT == AccessType::Store) + LogSize>(p);
+    if (EA == ErrorAction::Abort)
+      __builtin_unreachable();
+  }
+#endif
+}
+
+template <ErrorAction EA, AccessType AT>
+__attribute__((always_inline, nodebug)) static void CheckAddressSizedWithShade(
+    uptr p, uptr sz) {
+#ifdef IGNORE_SHADE
+  CheckAddressSizedNoShade<EA, AT>(p, sz);
+#else
+  if (sz == 0 || !InTaggableRegion(p))
+    return;
+  tag_t ptr_meta = GetTagFromPointer(p);
+  tag_t ptr_tag = ptr_meta & 0xf0;
+  tag_t ptr_shade = ptr_meta & 0x0f;
+  uptr ptr_raw = p & ~kAddressTagMask;
+  tag_t *shadow_first = (tag_t *)MemToShadow(ptr_raw);
+  tag_t *shadow_last = (tag_t *)MemToShadow(ptr_raw + sz - 1);
+
+  tag_t mem_tag = (*shadow_first) & 0xf0;
+  tag_t mem_shade = (*shadow_first) & 0x0f;
+
+  if (UNLIKELY(ptr_tag != mem_tag) ||
+      UNLIKELY(!((ptr_shade == 0x0) || (mem_shade == 0x0) ||
+                 (ptr_shade == mem_shade)))) {
+    SigTrap<0x20 * (EA == ErrorAction::Recover) +
+            0x10 * (AT == AccessType::Store) + 0xf>(p, sz);
+    if (EA == ErrorAction::Abort)
+      __builtin_unreachable();
+  }
+
+  mem_tag = (*shadow_last) & 0xf0;
+  mem_shade = (*shadow_last) & 0x0f;
+  if (UNLIKELY(ptr_tag != mem_tag) ||
+      UNLIKELY(!((ptr_shade == 0x0) || (mem_shade == 0x0) ||
+                 (ptr_shade == mem_shade)))) {
+    SigTrap<0x20 * (EA == ErrorAction::Recover) +
+            0x10 * (AT == AccessType::Store) + 0xf>(p, sz);
+    if (EA == ErrorAction::Abort)
+      __builtin_unreachable();
+  }
+
+#endif
+}
+
+template <ErrorAction EA, AccessType AT>
+__attribute__((always_inline, nodebug)) static void CheckAddressSized(
+    uptr p, uptr sz, bool shaded) {
+  if (shaded)
+    CheckAddressSizedWithShade<EA, AT>(p, sz);
+  else
+    CheckAddressSizedNoShade<EA, AT>(p, sz);
+}
+
+template <ErrorAction EA, AccessType AT, unsigned LogSize>
+__attribute__((always_inline, nodebug)) static void CheckAddress(uptr p,
+                                                                 bool shaded) {
+  if (shaded)
+    CheckAddressWithShade<EA, AT, LogSize>(p);
+  else
+    CheckAddressNoShade<EA, AT, LogSize>(p);
 }
 
 }  // end namespace __hwasan

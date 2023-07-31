@@ -16,8 +16,11 @@
 
 #include "interception/interception.h"
 #include "hwasan.h"
+#include "hwasan_checks.h"
 #include "hwasan_thread.h"
 #include "sanitizer_common/sanitizer_stackdepot.h"
+#include <wchar.h>
+#include <stdio.h>
 
 #if !SANITIZER_FUCHSIA
 
@@ -134,6 +137,76 @@ InternalLongjmp(__hw_register_buf env, int retval) {
 #    endif
 }
 
+INTERCEPTOR(char *, strcat, char *to, const char *from) {
+  uptr to_length = internal_strlen(to);
+  uptr from_length = internal_strlen(from);
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(from), from_length + 1);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(
+      reinterpret_cast<uptr>(to), to_length + from_length + 1);
+  return REAL(strcat)(to, from);
+}
+
+INTERCEPTOR(char*, strncat, char *to, const char *from, uptr size) {
+  uptr to_length = internal_strlen(to);
+  uptr from_length = internal_strlen(from);
+  uptr from_check_size = size > (from_length + 1)? (from_length + 1): size;
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(from), from_check_size);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(
+      reinterpret_cast<uptr>(to), to_length + from_check_size);
+  return REAL(strncat)(to, from, size);
+}
+
+INTERCEPTOR(char *, strcpy, char *to, const char *from) {
+  uptr from_length = internal_strlen(from);
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(from), from_length + 1);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(
+      reinterpret_cast<uptr>(to), from_length + 1);
+  return REAL(strcpy)(to, from);
+}
+
+INTERCEPTOR(wchar_t *, wcscpy, wchar_t *to, const wchar_t *from) {
+  uptr from_length = wcslen(from);
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(from), from_length + 1);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(
+      reinterpret_cast<uptr>(to), from_length + 1);
+  return REAL(wcscpy)(to, from);
+}
+
+
+INTERCEPTOR(int, snprintf, char *str, size_t n, const char *__format, ...) {
+  va_list args;
+  va_start(args, __format);
+  int res = vsnprintf(str, n, __format, args);
+  int from_length = internal_strlen(str);
+  int min_len = res > from_length ? from_length : (res + 1);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(str), min_len);
+
+  return res;
+
+}
+
+INTERCEPTOR(char*, strncpy, char *to, const char *from, uptr size) {
+  uptr from_length = internal_strlen(from) + 1;
+  uptr from_check_size = size > from_length ? from_length : size;
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(
+      reinterpret_cast<uptr>(from), from_check_size);
+
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(
+      reinterpret_cast<uptr>(to), size );
+  return REAL(strncpy)(to, from, size);
+}
+
 INTERCEPTOR(void, siglongjmp, __hw_sigjmp_buf env, int val) {
   if (env[0].__magic != kHwJmpBufMagic) {
     Printf(
@@ -191,6 +264,13 @@ void InitializeInterceptors() {
 #if defined(__linux__)
   INTERCEPT_FUNCTION(__libc_longjmp);
   INTERCEPT_FUNCTION(longjmp);
+  INTERCEPT_FUNCTION(strcat);
+  INTERCEPT_FUNCTION(strcpy);
+  INTERCEPT_FUNCTION(snprintf);
+  INTERCEPT_FUNCTION(strncat);
+  INTERCEPT_FUNCTION(strncpy);
+  INTERCEPT_FUNCTION(wcscpy);
+  // INTERCEPT_FUNCTION(strdup);
   INTERCEPT_FUNCTION(siglongjmp);
   INTERCEPT_FUNCTION(vfork);
 #endif  // __linux__

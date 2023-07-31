@@ -50,60 +50,225 @@ void __hwasan_init_frames(uptr, uptr);
 SANITIZER_INTERFACE_ATTRIBUTE
 extern uptr __hwasan_shadow_memory_dynamic_address;
 
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_loadN(uptr, uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load1(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load2(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load4(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load8(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load16(uptr);
 
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_loadN_noabort(uptr, uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load1_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load2_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load4_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load8_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_load16_noabort(uptr);
 
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_storeN(uptr, uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store1(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store2(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store4(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store8(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store16(uptr);
 
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_storeN_noabort(uptr, uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store1_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store2_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store4_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store8_noabort(uptr);
-SANITIZER_INTERFACE_ATTRIBUTE
+__attribute__((visibility("default"), always_inline, nodebug))
 void __hwasan_store16_noabort(uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_shade(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_shade(uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_noabort_shade(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_noabort_shade(uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_shade(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_shade(uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_noabort_shade(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_noabort_shade(uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_noabort_shade(uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_noabort_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_noabort_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_noabort_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_noabort_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_noabort_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_shade_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_shade_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_loadN_noabort_shade_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load1_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load2_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load4_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load8_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_load16_noabort_shade_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_shade_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_shade_dbg(uptr, uptr);
+
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_storeN_noabort_shade_dbg(uptr, uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store1_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store2_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store4_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store8_noabort_shade_dbg(uptr, uptr);
+__attribute__((visibility("default"), always_inline, nodebug))
+void __hwasan_store16_noabort_shade_dbg(uptr, uptr);
 
 SANITIZER_INTERFACE_ATTRIBUTE
 void __hwasan_tag_memory(uptr p, u8 tag, uptr sz);
+
+SANITIZER_INTERFACE_ATTRIBUTE
+void __hwasan_shade_memory(uptr p, u8 shade, uptr sz);
+
+SANITIZER_INTERFACE_ATTRIBUTE
+void __hwasan_test_free(void *p);
+
+
+__attribute__((visibility("default"), always_inline, nodebug)) void __hwasan_inline_tag_memory(uptr p, u8 tag, uptr sz);
 
 SANITIZER_INTERFACE_ATTRIBUTE
 uptr __hwasan_tag_pointer(uptr p, u8 tag);
@@ -169,11 +334,13 @@ SANITIZER_INTERFACE_ATTRIBUTE
 void __hwasan_print_memory_usage();
 
 SANITIZER_INTERFACE_ATTRIBUTE
-void *__hwasan_memcpy(void *dst, const void *src, uptr size);
+void *__hwasan_memcpy(void *dst, const void *src, uptr size, bool to_shaded, 
+                      bool from_shaded);
 SANITIZER_INTERFACE_ATTRIBUTE
-void *__hwasan_memset(void *s, int c, uptr n);
+void *__hwasan_memset(void *s, int c, uptr n, bool shaded);
 SANITIZER_INTERFACE_ATTRIBUTE
-void *__hwasan_memmove(void *dest, const void *src, uptr n);
+void *__hwasan_memmove(void *dest, const void *src, uptr n, bool to_shaded,
+                       bool from_shaded);
 
 SANITIZER_INTERFACE_ATTRIBUTE
 void __hwasan_set_error_report_callback(void (*callback)(const char *));

@@ -27,12 +27,16 @@
 #endif
 
 #ifndef HWASAN_WITH_INTERCEPTORS
-#define HWASAN_WITH_INTERCEPTORS 0
+#define HWASAN_WITH_INTERCEPTORS 1
 #endif
 
 #ifndef HWASAN_REPLACE_OPERATORS_NEW_AND_DELETE
 #define HWASAN_REPLACE_OPERATORS_NEW_AND_DELETE HWASAN_WITH_INTERCEPTORS
 #endif
+
+// #define IGNORE_SHADE
+#define HWASAN_OPTIMIZED
+// #define HWASAN_WITH_GRANULE
 
 typedef u8 tag_t;
 
@@ -61,13 +65,16 @@ constexpr unsigned kTagBits = 6;
 // translation and can be used to store a tag.
 constexpr unsigned kAddressTagShift = 56;
 constexpr unsigned kTagBits = 8;
+constexpr unsigned kShadeBits = 4;
 #endif  // defined(HWASAN_ALIASING_MODE)
 
 // Mask for extracting tag bits from the lower 8 bits.
 constexpr uptr kTagMask = (1UL << kTagBits) - 1;
+constexpr uptr kShadeMask = (1UL << kShadeBits) - 1;
 
 // Mask for extracting tag bits from full pointers.
 constexpr uptr kAddressTagMask = kTagMask << kAddressTagShift;
+constexpr uptr kAddressShadeMask = kShadeMask << kAddressTagShift;
 
 // Minimal alignment of the shadow base address. Determines the space available
 // for threads and stack histories. This is an ABI constant.
@@ -82,6 +89,10 @@ static inline tag_t GetTagFromPointer(uptr p) {
   return (p >> kAddressTagShift) & kTagMask;
 }
 
+// static inline tag_t GetShadeFromPointer(uptr p) {
+//   return (p >> kAddressShadeMask) & kShadeMask;
+// }
+
 static inline uptr UntagAddr(uptr tagged_addr) {
   return tagged_addr & ~kAddressTagMask;
 }
@@ -93,6 +104,10 @@ static inline void *UntagPtr(const void *tagged_ptr) {
 
 static inline uptr AddTagToPointer(uptr p, tag_t tag) {
   return (p & ~kAddressTagMask) | ((uptr)tag << kAddressTagShift);
+}
+
+static inline uptr AddShadeToPointer(uptr p, tag_t tag) {
+  return (p & ~kAddressShadeMask) | ((uptr)tag << kAddressTagShift);
 }
 
 namespace __hwasan {

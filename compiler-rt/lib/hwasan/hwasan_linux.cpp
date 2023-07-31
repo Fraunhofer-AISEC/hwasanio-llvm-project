@@ -78,15 +78,15 @@ static void PrintRange(uptr start, uptr end, const char *name) {
 
 static void PrintAddressSpaceLayout() {
   PrintRange(kHighMemStart, kHighMemEnd, "HighMem");
-  if (kHighShadowEnd + 1 < kHighMemStart)
-    PrintRange(kHighShadowEnd + 1, kHighMemStart - 1, "ShadowGap");
-  else
-    CHECK_EQ(kHighShadowEnd + 1, kHighMemStart);
+  // if (kHighShadowEnd + 1 < kHighMemStart)
+  //   PrintRange(kHighShadowEnd + 1, kHighMemStart - 1, "ShadowGap");
+  // else
+  //   CHECK_EQ(kHighShadowEnd + 1, kHighMemStart);
   PrintRange(kHighShadowStart, kHighShadowEnd, "HighShadow");
-  if (kLowShadowEnd + 1 < kHighShadowStart)
-    PrintRange(kLowShadowEnd + 1, kHighShadowStart - 1, "ShadowGap");
-  else
-    CHECK_EQ(kLowMemEnd + 1, kHighShadowStart);
+  // if (kLowShadowEnd + 1 < kHighShadowStart)
+  // PrintRange(kLowShadowEnd + 1, kHighShadowStart - 1, "ShadowGap");
+  // else
+  // CHECK_EQ(kLowMemEnd + 1, kHighShadowStart);
   PrintRange(kLowShadowStart, kLowShadowEnd, "LowShadow");
   if (kLowMemEnd + 1 < kLowShadowStart)
     PrintRange(kLowMemEnd + 1, kLowShadowStart - 1, "ShadowGap");
@@ -99,15 +99,19 @@ static void PrintAddressSpaceLayout() {
 static uptr GetHighMemEnd() {
   // HighMem covers the upper part of the address space.
   uptr max_address = GetMaxUserVirtualAddress();
-  // Adjust max address to make sure that kHighMemEnd and kHighMemStart are
-  // properly aligned:
+// Adjust max address to make sure that kHighMemEnd and kHighMemStart are
+// properly aligned:
+#  ifdef ONE_TO_ONE_MAPPING
+  max_address |= (GetMmapGranularity()) - 1;
+#  else
   max_address |= (GetMmapGranularity() << kShadowScale) - 1;
+#  endif
   return max_address;
 }
 
 static void InitializeShadowBaseAddress(uptr shadow_size_bytes) {
-  __hwasan_shadow_memory_dynamic_address =
-      FindDynamicShadowStart(shadow_size_bytes);
+  __hwasan_shadow_memory_dynamic_address = 0x400000000000;
+  // FindDynamicShadowStart(shadow_size_bytes);
 }
 
 void InitializeOsSupport() {
@@ -169,30 +173,33 @@ void InitializeOsSupport() {
 #  undef PR_TAGGED_ADDR_ENABLE
 }
 
+// || [0xc00000000000, 0xffffffffffff] || HighMem ||
+// || [0x800000000000, 0xbfffffffffff] || HighShadow ||
+// || [0x400000000000, 0x7fffffffffff] || LowShadow ||
+// || [0x000000000000, 0x3fffffffffff] || LowMem ||
+
 bool InitShadow() {
+  Printf("InitShadow\n");
   // Define the entire memory range.
   kHighMemEnd = GetHighMemEnd();
 
   // Determine shadow memory base offset.
-  InitializeShadowBaseAddress(MemToShadowSize(kHighMemEnd));
-
+  InitializeShadowBaseAddress(MemToShadowSize(kHighMemEnd) >> 1);
   // Place the low memory first.
-  kLowMemEnd = __hwasan_shadow_memory_dynamic_address - 1;
   kLowMemStart = 0;
-
+  kLowMemEnd = 0x3fffffffffff;
   // Define the low shadow based on the already placed low memory.
-  kLowShadowEnd = MemToShadow(kLowMemEnd);
-  kLowShadowStart = __hwasan_shadow_memory_dynamic_address;
+  kLowShadowStart = 0x400000000000;
+  kLowShadowEnd = 0x7fffffffffff;
 
   // High shadow takes whatever memory is left up there (making sure it is not
   // interfering with low memory in the fixed case).
-  kHighShadowEnd = MemToShadow(kHighMemEnd);
-  kHighShadowStart = Max(kLowMemEnd, MemToShadow(kHighShadowEnd)) + 1;
+  kHighShadowStart = 0xb00000000000;
+  kHighShadowEnd = 0xf00000000000;
 
   // High memory starts where allocated shadow allows.
-  kHighMemStart = ShadowToMem(kHighShadowStart);
+  kHighMemStart = 0xf00000010000;
 
-  // Check the sanity of the defined memory ranges (there might be gaps).
   CHECK_EQ(kHighMemStart % GetMmapGranularity(), 0);
   CHECK_GT(kHighMemStart, kHighShadowEnd);
   CHECK_GT(kHighShadowEnd, kHighShadowStart);
@@ -205,17 +212,18 @@ bool InitShadow() {
     PrintAddressSpaceLayout();
 
   // Reserve shadow memory.
-  ReserveShadowMemoryRange(kLowShadowStart, kLowShadowEnd, "low shadow");
-  ReserveShadowMemoryRange(kHighShadowStart, kHighShadowEnd, "high shadow");
+  ReserveShadowMemoryRange(0x400000000000, 0x800000000000 - 1, "shadow_heap",
+                           1);
+  ReserveShadowMemoryRange(0xb00000000000, 0xf00000000000 - 1, "shadow_stack");
 
   // Protect all the gaps.
-  ProtectGap(0, Min(kLowMemStart, kLowShadowStart));
-  if (kLowMemEnd + 1 < kLowShadowStart)
-    ProtectGap(kLowMemEnd + 1, kLowShadowStart - kLowMemEnd - 1);
-  if (kLowShadowEnd + 1 < kHighShadowStart)
-    ProtectGap(kLowShadowEnd + 1, kHighShadowStart - kLowShadowEnd - 1);
-  if (kHighShadowEnd + 1 < kHighMemStart)
-    ProtectGap(kHighShadowEnd + 1, kHighMemStart - kHighShadowEnd - 1);
+  // ProtectGap(0, Min(kLowMemStart, kLowShadowStart));
+  // if (kLowMemEnd + 1 < kLowShadowStart)
+  //   ProtectGap(kLowMemEnd + 1, kLowShadowStart - kLowMemEnd - 1);
+  // if (kLowShadowEnd + 1 < kHighShadowStart)
+  //   ProtectGap(kLowShadowEnd + 1, kHighShadowStart - kLowShadowEnd - 1);
+  // if (kHighShadowEnd + 1 < kHighMemStart)
+  //   ProtectGap(kHighShadowEnd + 1, kHighMemStart - kHighShadowEnd - 1);
 
   return true;
 }
@@ -241,8 +249,10 @@ bool MemIsApp(uptr p) {
   CHECK(GetTagFromPointer(p) == 0);
 #  endif
 
+
   return (p >= kHighMemStart && p <= kHighMemEnd) ||
-         (p >= kLowMemStart && p <= kLowMemEnd);
+         (p >= kLowMemStart && p <= kLowMemEnd) ||
+         (p >= kLowShadowEnd && p <= kHighShadowStart);
 }
 
 void InstallAtExitHandler() { atexit(HwasanAtExit); }
@@ -406,9 +416,31 @@ void Thread::InitStackAndTls(const InitState *) {
   tls_end_ = tls_begin_ + tls_size;
 }
 
-uptr TagMemoryAligned(uptr p, uptr size, tag_t tag) {
-  CHECK(IsAligned(p, kShadowAlignment));
-  CHECK(IsAligned(size, kShadowAlignment));
+__attribute__((always_inline, nodebug)) uptr TagMemoryAligned(uptr p, uptr size, tag_t tag) {
+  uptr shadow_start = MemToShadow(p);
+  uptr shadow_size = MemToShadowSize(size);
+
+  internal_memset((void *)shadow_start, tag, shadow_size);
+  return AddTagToPointer(p, tag);
+}
+
+void add_shade(void *s, tag_t shade, uptr size) {
+  char volatile *t = (char *)s;
+  for (uptr i = 0; i < size; ++i, ++t) {
+    *t &= 0xf0;
+    *t |= shade;
+  }
+}
+
+uptr ShadeMemoryAligned(uptr p, uptr size, tag_t tag) {
+#  ifndef ONE_TO_ONE_MAPPING
+  if (!IsAligned(p, kShadowAlignment)) {
+    return p;
+  }
+  if (!IsAligned(size, kShadowAlignment)) {
+    size = RoundUpTo(size, 16);
+  }
+#  endif
   uptr shadow_start = MemToShadow(p);
   uptr shadow_size = MemToShadowSize(size);
 
@@ -424,10 +456,12 @@ uptr TagMemoryAligned(uptr p, uptr size, tag_t tag) {
     // For an anonymous private mapping MADV_DONTNEED will return a zero page on
     // Linux.
     ReleaseMemoryPagesToOSAndZeroFill(page_start, page_end);
+    Die();
   } else {
-    internal_memset((void *)shadow_start, tag, shadow_size);
+    add_shade((void *)shadow_start, tag, shadow_size);
   }
-  return AddTagToPointer(p, tag);
+
+  return AddShadeToPointer(p, tag);
 }
 
 void HwasanInstallAtForkHandler() {

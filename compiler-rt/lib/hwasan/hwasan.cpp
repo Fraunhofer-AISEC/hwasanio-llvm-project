@@ -259,10 +259,7 @@ void __sanitizer::BufferedStackTrace::UnwindImpl(
 }
 
 static bool InitializeSingleGlobal(const hwasan_global &global) {
-  uptr full_granule_size = RoundDownTo(global.size(), 16);
-  TagMemoryAligned(global.addr(), full_granule_size, global.tag());
-  if (global.size() % 16)
-    TagMemoryAligned(global.addr() + full_granule_size, 16, global.size() % 16);
+  TagMemoryAligned(global.addr(), global.size(), global.tag());
   return false;
 }
 
@@ -366,9 +363,8 @@ __attribute__((constructor(0))) void __hwasan_init() {
 #if HWASAN_CONTAINS_UBSAN
   __ubsan::InitAsPlugin();
 #endif
-
   VPrintf(1, "HWAddressSanitizer init done\n");
-
+  
   hwasan_init_is_running = 0;
   hwasan_inited = 1;
 }
@@ -438,88 +434,338 @@ void __sanitizer_unaligned_store64(uu64 *p, u64 x) {
 }
 
 void __hwasan_loadN(uptr p, uptr sz) {
-  CheckAddressSized<ErrorAction::Abort, AccessType::Load>(p, sz);
+  CheckAddressSizedNoShade<ErrorAction::Abort, AccessType::Load>(p, sz);
 }
 void __hwasan_load1(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Load, 0>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 0>(p);
 }
 void __hwasan_load2(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Load, 1>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 1>(p);
 }
 void __hwasan_load4(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Load, 2>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 2>(p);
 }
+
 void __hwasan_load8(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Load, 3>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 3>(p);
 }
 void __hwasan_load16(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Load, 4>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 4>(p);
 }
 
 void __hwasan_loadN_noabort(uptr p, uptr sz) {
-  CheckAddressSized<ErrorAction::Recover, AccessType::Load>(p, sz);
+  CheckAddressSizedNoShade<ErrorAction::Recover, AccessType::Load>(p, sz);
 }
 void __hwasan_load1_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Load, 0>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 0>(p);
 }
 void __hwasan_load2_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Load, 1>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 1>(p);
 }
 void __hwasan_load4_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Load, 2>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 2>(p);
 }
 void __hwasan_load8_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Load, 3>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 3>(p);
 }
 void __hwasan_load16_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Load, 4>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 4>(p);
 }
 
 void __hwasan_storeN(uptr p, uptr sz) {
-  CheckAddressSized<ErrorAction::Abort, AccessType::Store>(p, sz);
+  CheckAddressSizedNoShade<ErrorAction::Abort, AccessType::Store>(p, sz);
 }
 void __hwasan_store1(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Store, 0>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 0>(p);
 }
 void __hwasan_store2(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Store, 1>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 1>(p);
 }
 void __hwasan_store4(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Store, 2>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 2>(p);
 }
 void __hwasan_store8(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Store, 3>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 3>(p);
 }
 void __hwasan_store16(uptr p) {
-  CheckAddress<ErrorAction::Abort, AccessType::Store, 4>(p);
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 4>(p);
 }
 
 void __hwasan_storeN_noabort(uptr p, uptr sz) {
-  CheckAddressSized<ErrorAction::Recover, AccessType::Store>(p, sz);
+  CheckAddressSizedNoShade<ErrorAction::Recover, AccessType::Store>(p, sz);
 }
 void __hwasan_store1_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Store, 0>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 0>(p);
 }
 void __hwasan_store2_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Store, 1>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 1>(p);
 }
 void __hwasan_store4_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Store, 2>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 2>(p);
 }
 void __hwasan_store8_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Store, 3>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 3>(p);
 }
 void __hwasan_store16_noabort(uptr p) {
-  CheckAddress<ErrorAction::Recover, AccessType::Store, 4>(p);
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 4>(p);
 }
 
-void __hwasan_tag_memory(uptr p, u8 tag, uptr sz) {
-  TagMemoryAligned(p, sz, tag);
+void __hwasan_loadN_shade(uptr p, uptr sz) {
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 2>(p);
 }
 
-uptr __hwasan_tag_pointer(uptr p, u8 tag) {
-  return AddTagToPointer(p, tag);
+void __hwasan_load8_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 3>(p);
 }
+void __hwasan_load16_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 4>(p);
+}
+
+void __hwasan_loadN_noabort_shade(uptr p, uptr sz) {
+  CheckAddressSizedWithShade<ErrorAction::Recover, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 2>(p);
+}
+void __hwasan_load8_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 3>(p);
+}
+void __hwasan_load16_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 4>(p);
+}
+
+void __hwasan_storeN_shade(uptr p, uptr sz) {
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 4>(p);
+}
+
+void __hwasan_storeN_noabort_shade(uptr p, uptr sz) {
+  CheckAddressSizedWithShade<ErrorAction::Recover, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_noabort_shade(uptr p) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 4>(p);
+}
+
+void __hwasan_shade_memory(uptr p, u8 shade, uptr sz) {
+  ShadeMemoryAligned(p, sz, shade);
+}
+
+void __hwasan_loadN_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedNoShade<ErrorAction::Abort, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 2>(p);
+}
+
+void __hwasan_load8_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 3>(p);
+}
+void __hwasan_load16_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Load, 4>(p);
+}
+
+void __hwasan_loadN_noabort_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedNoShade<ErrorAction::Recover, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 2>(p);
+}
+void __hwasan_load8_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 3>(p);
+}
+void __hwasan_load16_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Load, 4>(p);
+}
+
+void __hwasan_storeN_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedNoShade<ErrorAction::Abort, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Abort, AccessType::Store, 4>(p);
+}
+
+void __hwasan_storeN_noabort_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedNoShade<ErrorAction::Recover, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_noabort_dbg(uptr p, uptr id) {
+  CheckAddressNoShade<ErrorAction::Recover, AccessType::Store, 4>(p);
+}
+
+void __hwasan_loadN_shade_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 2>(p);
+}
+
+void __hwasan_load8_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 3>(p);
+}
+void __hwasan_load16_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Load, 4>(p);
+}
+
+void __hwasan_loadN_noabort_shade_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedWithShade<ErrorAction::Recover, AccessType::Load>(p, sz);
+}
+void __hwasan_load1_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 0>(p);
+}
+void __hwasan_load2_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 1>(p);
+}
+void __hwasan_load4_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 2>(p);
+}
+void __hwasan_load8_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 3>(p);
+}
+void __hwasan_load16_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Load, 4>(p);
+}
+
+void __hwasan_storeN_shade_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedWithShade<ErrorAction::Abort, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_shade_dbg(uptr p, uptr id) {
+    CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Abort, AccessType::Store, 4>(p);
+}
+
+void __hwasan_storeN_noabort_shade_dbg(uptr p, uptr sz, uptr id) {
+  CheckAddressSizedWithShade<ErrorAction::Recover, AccessType::Store>(p, sz);
+}
+void __hwasan_store1_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 0>(p);
+}
+void __hwasan_store2_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 1>(p);
+}
+void __hwasan_store4_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 2>(p);
+}
+void __hwasan_store8_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 3>(p);
+}
+void __hwasan_store16_noabort_shade_dbg(uptr p, uptr id) {
+  CheckAddressWithShade<ErrorAction::Recover, AccessType::Store, 4>(p);
+}
+
+void __hwasan_inline_tag_memory(uptr p, u8 tag, uptr sz)
+ {
+  char *shadow_start = (char *)(p ^ 0x400000000000);
+  for (unsigned long i = 0; i < sz; i++) {
+    *(shadow_start+i) = tag;
+  }
+}
+
+void __hwasan_test_free(void *p) {
+  uptr ptr = (uptr)p;
+  tag_t ptr_tag = GetTagFromPointer(ptr) & 0xf0;
+  if (p && ptr_tag) {
+    tag_t mem_tag = (*(tag_t *)MemToShadow(ptr)) & 0xf0;
+    if (mem_tag != ptr_tag) {
+      GET_MALLOC_STACK_TRACE;
+      ReportInvalidFree(&stack, ptr);
+    }
+  }
+}
+
+uptr __hwasan_tag_pointer(uptr p, u8 tag) { return AddTagToPointer(p, tag); }
 
 void __hwasan_handle_longjmp(const void *sp_dst) {
   uptr dst = (uptr)sp_dst;
@@ -567,18 +813,21 @@ void __hwasan_print_memory_usage() {
   Printf("%s\n", s.data());
 }
 
-static const u8 kFallbackTag = 0xBB & kTagMask;
+static const u8 kFallbackTag = 0xB0 & kTagMask;
 
 u8 __hwasan_generate_tag() {
   Thread *t = GetCurrentThread();
-  if (!t) return kFallbackTag;
+  if (!t)
+    return kFallbackTag;
   return t->GenerateRandomTag();
 }
 
 #if !SANITIZER_SUPPORTS_WEAK_HOOKS
 extern "C" {
-SANITIZER_INTERFACE_ATTRIBUTE SANITIZER_WEAK_ATTRIBUTE
-const char* __hwasan_default_options() { return ""; }
+SANITIZER_INTERFACE_ATTRIBUTE SANITIZER_WEAK_ATTRIBUTE const char *
+__hwasan_default_options() {
+  return "";
+}
 }  // extern "C"
 #endif
 
@@ -596,4 +845,4 @@ void __hwasan_tag_mismatch4(uptr addr, uptr access_info, uptr *registers_frame,
   __hwasan::HwasanTagMismatch(addr, access_info, registers_frame, outsize);
 }
 
-} // extern "C"
+}  // extern "C"

@@ -40,6 +40,9 @@ extern "C" {
   void __hwasan_tag_memory(const volatile void *p, unsigned char tag,
                            size_t size);
 
+  void __hwasan_shade_memory(const volatile void *p, unsigned char shade,
+                           size_t size);
+
   /// Set pointer tag. Previous tag is lost.
   void *__hwasan_tag_pointer(const volatile void *p, unsigned char tag);
 

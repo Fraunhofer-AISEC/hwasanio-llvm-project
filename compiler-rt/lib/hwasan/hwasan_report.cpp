@@ -619,6 +619,7 @@ void ReportTailOverwritten(StackTrace *stack, uptr tagged_addr, uptr orig_size,
   Decorator d;
   uptr untagged_addr = UntagAddr(tagged_addr);
   Printf("%s", d.Error());
+
   const char *bug_type = "allocation-tail-overwritten";
   Report("ERROR: %s: %s; heap object [%p,%p) of size %zd\n", SanitizerToolName,
          bug_type, untagged_addr, untagged_addr + orig_size, orig_size);
@@ -693,8 +694,10 @@ void ReportTagMismatch(StackTrace *stack, uptr tagged_addr, uptr access_size,
 
   Thread *t = GetCurrentThread();
 
+  Printf("ReportTagMismatch: %llx, %llx\n", tagged_addr, access_size);
   sptr offset =
       __hwasan_test_shadow(reinterpret_cast<void *>(tagged_addr), access_size);
+  Printf("ReportTagMismatch: %llx, %llx\n", offset, access_size);
   CHECK(offset >= 0 && offset < static_cast<sptr>(access_size));
   tag_t ptr_tag = GetTagFromPointer(tagged_addr);
   tag_t *tag_ptr =
@@ -702,31 +705,12 @@ void ReportTagMismatch(StackTrace *stack, uptr tagged_addr, uptr access_size,
   tag_t mem_tag = *tag_ptr;
 
   Printf("%s", d.Access());
-  if (mem_tag && mem_tag < kShadowAlignment) {
-    tag_t *granule_ptr = reinterpret_cast<tag_t *>((untagged_addr + offset) &
-                                                   ~(kShadowAlignment - 1));
-    // If offset is 0, (untagged_addr + offset) is not aligned to granules.
-    // This is the offset of the leftmost accessed byte within the bad granule.
-    u8 in_granule_offset = (untagged_addr + offset) & (kShadowAlignment - 1);
-    tag_t short_tag = granule_ptr[kShadowAlignment - 1];
-    // The first mismatch was a short granule that matched the ptr_tag.
-    if (short_tag == ptr_tag) {
-      // If the access starts after the end of the short granule, then the first
-      // bad byte is the first byte of the access; otherwise it is the first
-      // byte past the end of the short granule
-      if (mem_tag > in_granule_offset) {
-        offset += mem_tag - in_granule_offset;
-      }
-    }
-    Printf(
-        "%s of size %zu at %p tags: %02x/%02x(%02x) (ptr/mem) in thread T%zd\n",
-        is_store ? "WRITE" : "READ", access_size, untagged_addr, ptr_tag,
-        mem_tag, short_tag, t->unique_id());
-  } else {
-    Printf("%s of size %zu at %p tags: %02x/%02x (ptr/mem) in thread T%zd\n",
-           is_store ? "WRITE" : "READ", access_size, untagged_addr, ptr_tag,
-           mem_tag, t->unique_id());
+  if ((mem_tag & 0xf0) == (ptr_tag & 0xf0)) {
+    Printf("Intra-Object Violation\n");
   }
+  Printf("%s of size %zu at %p tags: %02x/%02x (ptr/mem) in thread T%zd\n",
+          is_store ? "WRITE" : "READ", access_size, untagged_addr, ptr_tag,
+          mem_tag, t->unique_id());
   if (offset != 0)
     Printf("Invalid access starting at offset %zu\n", offset);
   Printf("%s", d.Default());

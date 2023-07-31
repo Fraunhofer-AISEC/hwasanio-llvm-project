@@ -31,6 +31,7 @@ public:
   MaybeAlign Alignment;
   // The mask Value, if we're looking at a masked load/store.
   Value *MaybeMask;
+  bool shaded;
 
   InterestingMemoryOperand(Instruction *I, unsigned OperandNo, bool IsWrite,
                            class Type *OpType, MaybeAlign Alignment,
@@ -40,6 +41,7 @@ public:
     const DataLayout &DL = I->getModule()->getDataLayout();
     TypeSize = DL.getTypeStoreSizeInBits(OpType);
     PtrUse = &I->getOperandUse(OperandNo);
+    shaded = true;
   }
 
   Instruction *getInsn() { return cast<Instruction>(PtrUse->getUser()); }
